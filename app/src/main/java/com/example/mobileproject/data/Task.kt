@@ -10,10 +10,8 @@ data class Task(
     val title: String,
     val description: String = "",
     val isCompleted: Boolean = false,
-    val priority: Priority = Priority.MEDIUM // إضافة حقل الأولوية بقيمة افتراضية
+    val priority: Priority = Priority.MEDIUM
 )
-
-// تعريف مستويات الأولوية
 enum class Priority {
     LOW,
     MEDIUM,
