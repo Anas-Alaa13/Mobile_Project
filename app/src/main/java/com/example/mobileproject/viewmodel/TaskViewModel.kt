@@ -1,18 +1,31 @@
-
 package com.example.mobileproject.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.mobileproject.data.AppDatabase
 import com.example.mobileproject.data.Priority
 import com.example.mobileproject.data.Task
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
-class TaskViewModel : ViewModel() {
+/**
+ * AndroidViewModel يحمل الـ Application context تلقائياً،
+ * مما يتيح استخدام Room بدون الحاجة لـ ViewModelFactory مخصص.
+ */
+class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _tasks = MutableStateFlow<List<Task>>(emptyList())
-    val tasks: StateFlow<List<Task>> = _tasks.asStateFlow()
+    private val dao = AppDatabase.getDatabase(application).taskDao()
+
+    // يحوّل الـ Flow من Room إلى StateFlow مرتبط بدورة حياة الـ ViewModel
+    val tasks: StateFlow<List<Task>> = dao.getAllTasks()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
 
     fun addTask(
         title: String,
@@ -20,18 +33,14 @@ class TaskViewModel : ViewModel() {
         priority: Priority = Priority.MEDIUM
     ) {
         if (title.isBlank()) return
-
-        _tasks.update { currentTasks ->
-            val newId = (currentTasks.maxOfOrNull { it.id } ?: 0L) + 1L
-
-            val newTask = Task(
-                id = newId,
-                title = title.trim(),
-                description = description.trim(),
-                priority = priority
+        viewModelScope.launch {
+            dao.insertTask(
+                Task(
+                    title = title.trim(),
+                    description = description.trim(),
+                    priority = priority
+                )
             )
-
-            currentTasks + newTask
         }
     }
 
@@ -42,37 +51,32 @@ class TaskViewModel : ViewModel() {
         priority: Priority
     ) {
         if (title.isBlank()) return
-
-        _tasks.update { currentTasks ->
-            currentTasks.map { task ->
-                if (task.id == id) {
-                    task.copy(
-                        title = title.trim(),
-                        description = description.trim(),
-                        priority = priority
-                    )
-                } else {
-                    task
-                }
-            }
+        viewModelScope.launch {
+            dao.updateTask(
+                Task(
+                    id = id,
+                    title = title.trim(),
+                    description = description.trim(),
+                    priority = priority
+                )
+            )
         }
     }
 
     fun deleteTask(id: Long) {
-        _tasks.update { currentTasks ->
-            currentTasks.filterNot { it.id == id }
+        viewModelScope.launch {
+            dao.getTaskById(id)?.let { dao.deleteTask(it) }
         }
     }
 
     fun toggleTaskCompletion(id: Long) {
-        _tasks.update { currentTasks ->
-            currentTasks.map { task ->
-                if (task.id == id) {
-                    task.copy(isCompleted = !task.isCompleted)
-                } else {
-                    task
-                }
+        viewModelScope.launch {
+            dao.getTaskById(id)?.let { task ->
+                dao.updateTask(task.copy(isCompleted = !task.isCompleted))
             }
         }
     }
+
+    /** suspend — تُستدعى داخل LaunchedEffect أو coroutine scope */
+    suspend fun getTaskById(id: Long): Task? = dao.getTaskById(id)
 }
