@@ -1,4 +1,4 @@
-package com.example.todoapp.ui.navigation
+package com.example.mobileproject.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavType
@@ -6,10 +6,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.todoapp.ui.addedit.AddEditTaskScreen
-import com.example.todoapp.ui.details.TaskDetailsScreen
-import com.example.todoapp.ui.list.TaskListScreen
-import com.example.todoapp.viewmodel.TaskViewModel
+import com.example.mobileproject.ui.addedit.AddEditTaskScreen
+import com.example.mobileproject.ui.details.TaskDetailsScreen
+import com.example.mobileproject.ui.list.TaskListScreen
+import com.example.mobileproject.viewmodel.TaskViewModel
 
 @Composable
 fun AppNavigation(viewModel: TaskViewModel) {
@@ -27,9 +27,9 @@ fun AppNavigation(viewModel: TaskViewModel) {
 
         composable(
             route = Routes.ADD_EDIT,
-            arguments = listOf(navArgument("taskId") { type = NavType.IntType })
+            arguments = listOf(navArgument("taskId") { type = NavType.LongType })
         ) { backStackEntry ->
-            val taskId = backStackEntry.arguments?.getInt("taskId") ?: -1
+            val taskId = backStackEntry.arguments?.getLong("taskId") ?: -1L
             AddEditTaskScreen(
                 taskId = taskId,
                 viewModel = viewModel,
@@ -39,9 +39,9 @@ fun AppNavigation(viewModel: TaskViewModel) {
 
         composable(
             route = Routes.DETAILS,
-            arguments = listOf(navArgument("taskId") { type = NavType.IntType })
+            arguments = listOf(navArgument("taskId") { type = NavType.LongType })
         ) { backStackEntry ->
-            val taskId = backStackEntry.arguments?.getInt("taskId") ?: return@composable
+            val taskId = backStackEntry.arguments?.getLong("taskId") ?: return@composable
             TaskDetailsScreen(
                 taskId = taskId,
                 viewModel = viewModel,
